@@ -1,0 +1,32 @@
+@startuml
+title Вариант 28. ArchiMate 3.0, бизнес-слой ПВЗ
+
+skinparam rectangle {
+  BackgroundColor<<BusinessActor>> #FFEEDD
+  BackgroundColor<<BusinessProcess>> #EEFFDD
+  BackgroundColor<<BusinessService>> #DDEEFF
+  BackgroundColor<<BusinessObject>> #FFFFFF
+}
+
+rectangle "Посетители ПВЗ\n(ИБ, ИЗ1)" <<BusinessActor>> as Visitors
+rectangle "Обработка заявки\nв ПВЗ" <<BusinessProcess>> as Process
+rectangle "Электронная очередь" <<BusinessService>> as QueueService
+rectangle "Зона ожидания\n(буфер, Д10З3/Д10О3)" <<BusinessObject>> as WaitingZone
+rectangle "Оператор окна выдачи\n(ПЗ2)" <<BusinessActor>> as Operator
+rectangle "Выборка пакета\n(Д2Б5)" <<BusinessService>> as PacketSelect
+rectangle "Указатель окон\n(Д2П2)" <<BusinessObject>> as Pointer
+rectangle "Отчёт ОР1" <<BusinessObject>> as Report
+rectangle "Пошаговый контроль ОД1" <<BusinessService>> as StepControl
+
+Visitors --> Process : создаёт заявку
+Process --> QueueService : регистрация / постановка
+QueueService --> WaitingZone : Д10З3 / Д10О3
+QueueService --> PacketSelect : инициирует выборку
+PacketSelect --> WaitingZone : Д2Б5
+PacketSelect --> Pointer : Д2П2
+PacketSelect --> Operator : назначает пакет
+Operator --> Process : обслуживание ПЗ2
+Process --> Report : статистика
+Process --> StepControl : состояние на шаге
+
+@enduml

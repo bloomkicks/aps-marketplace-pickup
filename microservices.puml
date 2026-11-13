@@ -1,0 +1,37 @@
+@startuml
+title Вариант 28. Карта микросервисов контура ПВЗ
+
+package "Входной контур" {
+  [source-service] as SRC
+}
+
+package "Очередь" {
+  [dispatcher-put-service] as DPS
+  [buffer-service] as BUF
+}
+
+package "Обслуживание" {
+  [dispatcher-select-service] as DSS
+  [operator-service] as OPS
+}
+
+package "Наблюдаемость" {
+  [stats-service] as ST
+  [event-calendar-service] as EC
+}
+
+package "Визуализация" {
+  [pvz-sim] as SIM
+}
+
+SRC --> DPS : заявка (ИБ, ИЗ1)
+DPS --> BUF : Д10З3 / Д10О3
+DSS --> BUF : Д2Б5
+DSS --> OPS : назначение (Д2П2)
+OPS --> ST : ПЗ2, результаты
+DPS --> ST : отказ
+DPS --> EC : времена
+DSS --> EC : времена
+ST --> SIM : кадры JSON (ОР1, ОД1)
+
+@enduml

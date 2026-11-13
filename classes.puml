@@ -1,0 +1,124 @@
+@startuml
+title Вариант 28. Диаграмма классов контура ПВЗ
+
+class Request {
+  - id: UUID
+  - sourceId: int
+  - priority: int
+  - arrivalTime: DateTime
+  - category: String
+  + getId(): UUID
+  + getSourceId(): int
+  + getPriority(): int
+  + getArrivalTime(): DateTime
+}
+
+class Source {
+  - id: int
+  - priority: int
+  - infinite: boolean
+  - intervalGenerator: ExpGenerator
+  + generateRequest(): Request
+}
+
+class Buffer {
+  - capacity: int
+  - seats: List<Request>
+  + hasFreeSeat(): boolean
+  + putNoShift(req: Request): boolean
+  + evictOldest(): Request
+  + getHighestPriorityPacket(): List<Request>
+  + isEmpty(): boolean
+  + size(): int
+}
+
+class DispatcherPut {
+  - buffer: Buffer
+  - stats: Stats
+  - stepControl: StepControl
+  + handleArrival(req: Request): void
+  - rejectOldest(): Request
+}
+
+class DispatcherSelect {
+  - buffer: Buffer
+  - operators: List<Operator>
+  - pointer: CyclicPointer
+  - stats: Stats
+  - stepControl: StepControl
+  + tryDispatch(): void
+  + selectPacket(): List<Request>
+  + findOperator(): Operator
+}
+
+class CyclicPointer {
+  - currentIndex: int
+  + nextOperator(ops: List<Operator>): Operator
+}
+
+class Operator {
+  - id: int
+  - state: OperatorState
+  - serviceTimeGenerator: UniformGenerator
+  - currentPacket: List<Request>
+  + isIdle(): boolean
+  + startService(packet: List<Request>): void
+  + completeService(): void
+}
+
+class Stats {
+  + recordArrival(req: Request): void
+  + recordRejection(req: Request): void
+  + recordService(req: Request): void
+  + recordOperatorFree(op: Operator): void
+  + buildReport(): Report
+}
+
+class StepControl {
+  + updateState(buffer: Buffer, operators: List<Operator>, pointer: CyclicPointer): void
+}
+
+class Report {
+  + pReject: double
+  + avgWait: double
+  + avgStay: double
+  + utilization: double
+}
+
+Source --> Request : create
+DispatcherPut --> Buffer : buffer
+DispatcherPut --> Stats : stats
+DispatcherPut --> StepControl : stepControl
+
+DispatcherSelect --> Buffer : buffer
+DispatcherSelect --> Operator : operators
+DispatcherSelect --> CyclicPointer : pointer
+DispatcherSelect --> Stats : stats
+DispatcherSelect --> StepControl : stepControl
+
+Buffer o-- Request : seats
+Operator --> Request : currentPacket
+Operator --> Stats : record
+
+note right of Buffer
+  Д10З3 — putNoShift(req)
+  Д10О3 — evictOldest()
+  Д2Б5 — getHighestPriorityPacket()
+end note
+
+note right of CyclicPointer
+  Д2П2 — nextOperator()
+end note
+
+note right of Operator
+  ПЗ2 — startService(packet)
+  Обслуживание пакета последовательно.
+end note
+
+note bottom of Report
+  ОР1 — сводный отчёт:
+  p отказа, средние времена,
+  загрузка операторов.
+end note
+
+@enduml

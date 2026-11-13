@@ -1,0 +1,130 @@
+@startuml
+title Вариант 28. Последовательность обработки заявок в ПВЗ
+autonumber
+
+actor Source as "Источник\n(ИБ, ИЗ1)"
+participant DP as "Диспетчер постановки\n(Д10З3 / Д10О3)"
+queue Buffer as "Буфер\n(зона ожидания)"
+participant DS as "Диспетчер выбора\n(Д2Б5)"
+participant Ptr as "Указатель окон\n(Д2П2)"
+participant Op as "Оператор\n(ПЗ2)"
+database Stats as "Статистика / ОР1"
+participant OD1 as "ОД1\nпошаговый контроль"
+
+note over Source
+  ИБ — бесконечный источник посетителей.
+  ИЗ1 — пуассоновский поток:
+  экспоненциальные интервалы между приходами.
+end note
+
+loop Для каждого прихода посетителя
+  Source -> DP: Заявка(Request)\nid, sourceId, priority, arrivalTime
+  note right of DP
+    Д10З3 — постановка на свободное место
+    без сдвига остальных мест в зоне ожидания.
+  end note
+
+  DP -> Buffer: hasFreeSeat()
+  alt Буфер не полон — HappyFlow по месту
+    Buffer --> DP: true
+    DP -> Buffer: putNoShift(req)
+    Buffer --> DP: ok
+    DP -> Stats: recordArrival(req)
+  else Буфер полон — отказ / выбивание
+    Buffer --> DP: false
+    note right of DP
+      Д10О3 — при переполнении выбивается
+      самая старая заявка, место отдаётся новой.
+    end note
+    DP -> Buffer: evictOldest()
+    Buffer --> DP: evictedReq
+    DP -> Stats: recordRejection(evictedReq)
+    DP -> Buffer: putNoShift(req)
+    Buffer --> DP: ok
+    DP -> Stats: recordArrival(req)
+  end
+
+  DP -> OD1: updateState(buffer, seats, operators)
+
+  == Проверка возможности назначения на прибор ==
+  DP -> DS: tryDispatch()
+  DS -> Op: findIdleOperator()
+
+  alt Есть свободный оператор — HappyFlow по прибору
+    Op --> DS: idleOperator
+
+    DS -> Buffer: getHighestPriorityPacket()
+    note right of DS
+      Д2Б5 — выбирается пакет заявок
+      наивысшего приоритета из буфера.
+      Пакет — группа заявок одного источника,
+      доступная в момент освобождения прибора.
+    end note
+    Buffer --> DS: packet: List<Request>
+
+    alt packet не пуст
+      DS -> Ptr: nextOperator(operators)
+      note right of Ptr
+        Д2П2 — циклический указатель окон:
+        поиск свободного оператора начинается
+        со следующей позиции после прошлого вызова.
+      end note
+      Ptr --> DS: operator
+
+      DS -> Op: startService(packet)
+      note right of Op
+        ПЗ2 — равномерное время
+        поиска, сканирования и выдачи.
+      end note
+
+      loop Для каждой заявки в пакете
+        Op -> Op: service(request)
+        Op -> Stats: recordService(request)
+        Op -> OD1: updateState(...)
+      end
+
+      Op -> DS: completeService()
+      DS -> Stats: recordOperatorFree(Op)
+      note right of DS
+        После освобождения прибора снова
+        выполняется выборка пакета Д2Б5.
+      end note
+      DS -> Buffer: getHighestPriorityPacket()
+      Buffer --> DS: nextPacket
+    else packet пуст
+      DS -> OD1: updateState("буфер пуст, оператор свободен")
+    end
+
+  else Все операторы заняты
+    Op --> DS: none
+    note right of DS
+      Заявка остаётся в буфере.
+      Ожидание события освобождения любого прибора.
+    end note
+    DS -> OD1: updateState("все приборы заняты")
+
+    ... ожидание освобождения прибора ...
+
+    Op -> DS: completeService()
+    DS -> Stats: recordOperatorFree(Op)
+    DS -> Buffer: getHighestPriorityPacket()
+    Buffer --> DS: packet
+
+    alt packet не пуст
+      DS -> Ptr: nextOperator(operators)
+      Ptr --> DS: operator
+      DS -> Op: startService(packet)
+
+      loop Для каждой заявки в пакете
+        Op -> Op: service(request)
+        Op -> Stats: recordService(request)
+      end
+
+      Op -> DS: completeService()
+    else packet пуст
+      DS -> OD1: updateState("нет заявок для назначения")
+    end
+  end
+end
+
+@enduml
