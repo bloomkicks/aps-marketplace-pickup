@@ -80,13 +80,11 @@
 
 | Артефакт | Файл | Что фиксирует |
 |---|---|---|
-| Сиквенс | [docs/diagrams/sequence.puml](images/sequence.png) | HappyFlow, переполнение при занятых приборах, последующая постановка одной заявки; коды Д10З3, Д10О3, Д2Б4, Д2П2 |
-| Классы | [docs/diagrams/classes.puml](images/classes.png) | Методы и ссылки: ДП → буфер, ДВ → буфер и приборы |
-| Поток с дорожками | [docs/diagrams/flowchart.puml](images/flowchart.png) | Источник, ДП, календарь, ДВ, прибор |
-| ArchiMate | [docs/diagrams/archimate.puml](images/archimate.png) | Бизнес-слой: съём, очередь, отказ, выбор, расчёт, актуатор, KPI |
-| Карта сервисов | [docs/diagrams/microservices.puml](images/microservices.png) | Границы микросервисов контура |
-
-Пересборка рисунков: `plantuml docs/diagrams/*.puml`.
+| Сиквенс | [images/sequence.puml](images/sequence.png) | HappyFlow, переполнение при занятых приборах, последующая постановка одной заявки; коды Д10З3, Д10О3, Д2Б4, Д2П2 |
+| Классы | [images/classes.puml](images/classes.png) | Методы и ссылки: ДП → буфер, ДВ → буфер и приборы |
+| Поток с дорожками | [images/flowchart.puml](images/flowchart.png) | Источник, ДП, календарь, ДВ, прибор |
+| ArchiMate | [images/archimate.puml](images/archimate.png) | Бизнес-слой: съём, очередь, отказ, выбор, расчёт, актуатор, KPI |
+| Карта сервисов | [images/microservices.puml](images/microservices.png) | Границы микросервисов контура |
 
 ---
 
